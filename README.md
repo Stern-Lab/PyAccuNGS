@@ -1,7 +1,7 @@
-# <center>___AccuNGS___
+# <center>___PyAccuNGS___
 # Introduction
 <b><i>AccuNGS</b></i> is the main computational pipeline used by SternLab. <br>
-This Python implementation overides and improves over the previous perl implementation which is still available under branch perl.<br>
+This Python implementation overides and improves over the previous perl implementation which is still available under Stern-Lab/AccuNGS.<br>
 Within AccuNGS wet protocol, the sequencing library is created to maximize overlap of the Forward and Reverse reads of a paired-end Illumina sequencing run, in a manner that allows for two observations of each base of the original insert for the purpose of increasing the accuracy of basecalling.
 
 # Installation
