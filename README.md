@@ -1,7 +1,3 @@
-This is a work in progress of a python implementation of the entire pipeline.
-In order to install the environment: <br>
-<code>conda env create --file requirements.txt name_of_new_environment</code>
-
 # <center>___AccuNGS___
 # Introduction
 <b><i>AccuNGS</b></i> is the main computational pipeline used by SternLab. <br>
@@ -9,7 +5,7 @@ This Python implementation overides and improves over the previous perl implemen
 Within AccuNGS wet protocol, the sequencing library is created to maximize overlap of the Forward and Reverse reads of a paired-end Illumina sequencing run, in a manner that allows for two observations of each base of the original insert for the purpose of increasing the accuracy of basecalling.
 
 # Installation
-todo: gotta package and test this thing.. 
+<code>conda env create --file requirements.txt name_of_new_environment</code>
 
 # Usage
 AccuNGS pipeline was designed to run locally while using available memory and cpus efficiently and it also natively supports running on a [PBS cluster](#running-on-a-pbs-cluster) system. AccuNGS has three [required parameters](#required-parameters) and all other parameters have default values which can be changed by editing the file <i>config.ini</i> in the installation directory. AccuNGS pipeline was designed to run on fastq files with maximal overlap between the forward and reverse reads but can also be run on fastq files without any overlap using the using the parameter <code>--overlapping_reads N</code>
