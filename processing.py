@@ -200,6 +200,7 @@ def filter_bases(called_bases, quality_threshold, reads_overlap):
     called_bases, multi_aligned_bases = filter_target_nunique_by(called_bases, by=['read_id', 'read_pos'],
                                                                  target_column='ref_pos')
     multi_aligned_bases['dropped_because'] = "read position aligned to more than one ref position"
+    # Keep both the plus and minus strands if either has quality => quality_threshold
     called_bases, low_quality_bases = filter_target_max_by(called_bases, by=['read_id', 'ref_pos'],
                                                            target_column='quality', min_value=quality_threshold)
     low_quality_bases['dropped_because'] = f"base phred score lower than threshold: {quality_threshold}"
