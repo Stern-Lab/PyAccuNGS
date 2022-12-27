@@ -175,9 +175,9 @@ def filter_target_max_by(df, target_column, by, min_value):
     target_values.name = 'tmpCol'
     target_values = target_values.reset_index()
     df = df.merge(target_values, on=by)
-    df_with_high_mean = df[df['tmpCol'] >= min_value].drop(columns=['tmpCol']).copy()
-    df_with_low_mean = df[df['tmpCol'] < min_value].drop(columns=['tmpCol']).copy()
-    return df_with_high_mean, df_with_low_mean
+    df_with_higher_val = df[df['tmpCol'] >= min_value].drop(columns=['tmpCol']).copy()
+    df_with_lower_val = df[df['tmpCol'] < min_value].drop(columns=['tmpCol']).copy()
+    return df_with_higher_val, df_with_lower_val
 
 
 def filter_target_nunique_by(df, target_column, by, required_value=1):
