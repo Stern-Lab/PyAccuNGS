@@ -48,8 +48,7 @@ def submit_cmdfile_to_pbs(cmdfile, pbs_cmd_path):
 
 def runner_cmd(input_dir, output_dir, reference_file, max_basecall_iterations, db_path, db_comment,
                quality_threshold, task, evalue, dust, num_alignments, mode, perc_identity, soft_masking, min_coverage,
-               align_to_ref, stretches_pvalue, stretches_distance, stretches_to_plot, python_path, min_frequency,
-               max_read_size, base_path, cleanup, cpu_count, overlapping_reads, calculate_haplotypes):
+               align_to_ref, python_path, min_frequency, base_path, cleanup, cpu_count, overlapping_reads):
     runner_path = os.path.join(base_path, 'runner.py')
     cmd = f"{python_path} {runner_path} -i {input_dir} -o {output_dir} -r {reference_file} "
     if max_basecall_iterations is not None:
@@ -76,14 +75,6 @@ def runner_cmd(input_dir, output_dir, reference_file, max_basecall_iterations, d
         cmd += f" -mf {min_frequency}"
     if align_to_ref is not None:
         cmd += f" -ar {align_to_ref}"
-    if stretches_pvalue is not None:
-        cmd += f" -sp {stretches_pvalue}"
-    if stretches_distance is not None:
-        cmd += f" -sd {stretches_distance}"
-    if stretches_to_plot is not None:
-        cmd += f" -stp {stretches_to_plot}"
-    if max_read_size is not None:
-        cmd += f" -smrs {max_read_size}"
     if cleanup is not None:
         cmd += f" -c {cleanup}"
     if cpu_count is not None:
@@ -94,15 +85,12 @@ def runner_cmd(input_dir, output_dir, reference_file, max_basecall_iterations, d
         cmd += f" -db {db_path}"
     if db_comment is not None:
         cmd += f" -dbc '{db_comment}'"
-    if calculate_haplotypes is not None:
-        cmd += f" -ch '{calculate_haplotypes}'"
     return cmd
 
 
 def pbs_runner(input_dir, output_dir, reference_file, max_basecall_iterations, db_path, db_comment, pbs_cmd_path,
                quality_threshold, task, evalue, dust, num_alignments, mode, perc_identity, overlapping_reads, gmem,
-               soft_masking, min_coverage, align_to_ref, stretches_pvalue, stretches_distance, calculate_haplotypes,
-               stretches_to_plot, max_read_size, alias, queue, cleanup, cpu_count, python_path, min_frequency,
+               soft_masking, min_coverage, align_to_ref, alias, queue, cleanup, cpu_count, python_path, min_frequency,
                custom_command=None, after_jobid=None, job_suffix=None, default_command=None):
     # TODO: reintroduce stages into the runner,
     #       do relevant aggregation (when needed) in aggregation instead of linked mutations,
@@ -120,13 +108,13 @@ def pbs_runner(input_dir, output_dir, reference_file, max_basecall_iterations, d
         alias = f"AccuNGS_{cmd_identifier}"
     cmd_path = os.path.join(pbs_logs_dir, f'{alias}.cmd')
     cmd = runner_cmd(input_dir=input_dir, output_dir=output_dir, reference_file=reference_file,
-                     max_basecall_iterations=max_basecall_iterations, max_read_size=max_read_size,
+                     max_basecall_iterations=max_basecall_iterations, 
                      quality_threshold=quality_threshold, task=task, evalue=evalue, dust=dust, python_path=python_path,
                      num_alignments=num_alignments, mode=mode, perc_identity=perc_identity, db_comment=db_comment,
                      soft_masking=soft_masking, min_coverage=min_coverage, cleanup=cleanup, cpu_count=cpu_count,
-                     align_to_ref=align_to_ref, db_path=db_path, calculate_haplotypes=calculate_haplotypes,
-                     stretches_pvalue=stretches_pvalue, stretches_distance=stretches_distance, base_path=base_path,
-                     stretches_to_plot=stretches_to_plot, overlapping_reads=overlapping_reads,
+                     align_to_ref=align_to_ref, db_path=db_path,
+                     base_path=base_path,
+                     overlapping_reads=overlapping_reads,
                      min_frequency=min_frequency)
     create_pbs_cmd_file(cmd_path, alias, output_logs_dir=pbs_logs_dir, cmd=cmd, queue=queue, gmem=gmem,
                         ncpus=cpu_count, run_after_job_id=after_jobid, job_suffix=job_suffix,
@@ -164,8 +152,6 @@ if __name__ == "__main__":
                mode=args['blast_mode'], perc_identity=args['blast_perc_identity'],
                min_coverage=args['min_coverage'], cleanup=args['cleanup'], default_command=args['default_command'],
                align_to_ref=args['align_to_ref'], queue=args['queue'], python_path=args['python_path'],
-               stretches_pvalue=args['stretches_pvalue'], stretches_distance=args['stretches_distance'],
-               stretches_to_plot=args['stretches_to_plot'], max_read_size=args['stretches_max_read_size'],
                cpu_count=args['cpu_count'], overlapping_reads=args['overlapping_reads'], db_path=args['db_path'],
                after_jobid=args['after_jobid'], job_suffix=args['job_suffix'], alias=args['alias'],
                calculate_haplotypes=args['calculate_haplotypes'], pbs_cmd_path=args['pbs_cmd_path'], gmem=args['gmem'],
