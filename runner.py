@@ -52,28 +52,23 @@ Output: linked_mutations - file containing pairs of mutatations, their pvalues a
         stretches - file containing the aggregations of the stretches by their frequencies.
 """
 import argparse
-import concurrent.futures
 import getpass
 import json
 import os
-import multiprocessing as mp
 import shutil
-
-from datetime import datetime
-import pandas as pd
+import concurrent.futures
 import Bio
+import multiprocessing as mp
+import pandas as pd
 from Bio import pairwise2, SeqIO
-
+from datetime import datetime
 from data_preparation import prepare_data
-from graph_haplotypes import graph_haplotypes
-from mutations_linking import get_variants_list, get_mutations_linked_with_position
 from summarize import graph_summary, create_stats_file
 from processing import process_fastq
 from aggregation import aggregate_processed_output, create_freqs_file, create_mutation_read_list_file
 from logger import pipeline_logger
 from utils import get_files_in_dir, get_sequence_from_fasta, get_mp_results_and_report, create_consensus_file, \
     get_files_by_extension, concatenate_files_by_extension, get_config, md5_dir, md5_file
-from haplotypes.co_occurs_to_stretches import calculate_stretches
 
 
 def parallel_process(processing_dir, fastq_files, reference_file, quality_threshold, task, evalue, dust, num_alignments,
@@ -104,48 +99,6 @@ def set_filenames(output_dir):
     os.makedirs(filenames['data_dir'], exist_ok=True)
     os.makedirs(filenames["basecall_dir"], exist_ok=True)
     return filenames
-
-
-def calculate_linked_mutations(freqs_file_path, mutation_read_list, max_read_length, output_dir):
-    variants_list = get_variants_list(freqs_file_path)
-    for position in mutation_read_list.index.get_level_values(0).astype(int).unique():
-        output_path = os.path.join(output_dir, f"{position}_linked_mutations.tsv")
-        get_mutations_linked_with_position(position, variants_list=variants_list,
-                                           mutation_read_list=mutation_read_list,
-                                           max_read_size=max_read_length,
-                                           output_path=output_path)
-
-
-def parallel_calc_linked_mutations(freqs_file_path, output_dir, mutation_read_list_path, max_read_length, part_size,
-                                   cpu_count):
-    # TODO: optimize memory usage and better exceptions.
-    mutation_read_list = pd.read_csv(mutation_read_list_path, sep="\t")
-    mutation_read_list['ref_pos'] = mutation_read_list['ref_pos'].round(3)
-    mutation_read_list = mutation_read_list.set_index(['ref_pos', 'read_base'], drop=True)
-    positions = mutation_read_list.index.get_level_values(0).astype(int).unique()
-    if max_read_length is None:
-        max_read_length = 350
-    if not part_size:
-        part_size = 50  # smaller parts take less time to compute but take more time to aggregate and use more RAM.
-    mutation_read_list_parts = {}
-    start_index = 0
-    end_index = 0
-    while end_index < len(positions):
-        next_start_index = start_index + part_size
-        next_end_index = min(next_start_index + part_size + max_read_length, len(positions))
-        if next_end_index == len(positions):
-            end_index = next_end_index
-        else:
-            end_index = start_index + part_size + max_read_length
-        start_position = positions[start_index]
-        end_position = positions[end_index - 1] + 0.999  # include insertions
-        mutation_read_list_parts[f"{start_index}_{end_index}"] = mutation_read_list.loc[start_position:end_position]
-        start_index += part_size
-    with mp.Pool(cpu_count) as pool:
-        parts = [pool.apply_async(calculate_linked_mutations,
-                                  args=(freqs_file_path, read_list, max_read_length, output_dir))
-                 for read_list in mutation_read_list_parts.values()]
-        get_mp_results_and_report(parts)
 
 
 def create_consensus_and_check_alignment_with_ref(reference_file, align_to_ref, min_coverage, iteration_data_dir, basecall_dir,
@@ -239,24 +192,6 @@ def assign_output_dir(db_path, alias=None):
     return output_dir
 
 
-def infer_haplotypes(cpu_count, filenames, linked_mutations_dir, log, max_read_size, output_dir, basecall_dir,
-                     stretches_distance, stretches_pvalue):
-    os.makedirs(linked_mutations_dir, exist_ok=True)
-    # TODO: optimize part size
-    called_bases_files = get_files_by_extension(basecall_dir, "called_bases")
-    mutation_read_list_path = os.path.join(output_dir, "mutation_read_list.tsv")
-    create_mutation_read_list_file(called_bases_files=called_bases_files, output_path=mutation_read_list_path)
-    parallel_calc_linked_mutations(freqs_file_path=filenames['freqs_file_path'], cpu_count=cpu_count,
-                                   mutation_read_list_path=filenames['mutation_read_list_path'],
-                                   output_dir=linked_mutations_dir, max_read_length=max_read_size,
-                                   part_size=100)  # TODO: drop low quality mutations?, set part_size as param.
-    log.info(f"Aggregating linked mutations to stretches...")
-    concatenate_files_by_extension(input_dir=linked_mutations_dir, extension='tsv',
-                                   output_path=filenames['linked_mutations_path'])
-    calculate_stretches(filenames['linked_mutations_path'], max_pval=stretches_pvalue, distance=stretches_distance,
-                        output=filenames['stretches'])  # TODO: refactor that function
-
-
 def process_data(align_to_ref, dust, evalue, fastq_files, log, max_basecall_iterations, min_frequency,
                  min_coverage, mode, num_alignments, overlapping_reads, output_dir, perc_identity, processing_dir,
                  quality_threshold, reference_file, soft_masking, task, basecall_dir):
@@ -327,9 +262,9 @@ def remove_unnecessary_files(dirs_to_remove, files_to_remove):
 
 
 def runner(input_dir, reference_file, output_dir, max_basecall_iterations, min_coverage, db_comment,
-           quality_threshold, task, evalue, dust, num_alignments, soft_masking, perc_identity, mode, max_read_size,
-           align_to_ref, stretches_pvalue, stretches_distance, stretches_to_plot, cleanup, min_frequency,
-           cpu_count, overlapping_reads, db_path, max_memory, calculate_haplotypes="Y"):
+           quality_threshold, task, evalue, dust, num_alignments, soft_masking, perc_identity, mode,
+           align_to_ref, cleanup, min_frequency, cpu_count, overlapping_reads, 
+           db_path, max_memory):
     if not db_path:
         db_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'db')
     if not output_dir:
@@ -370,23 +305,8 @@ def runner(input_dir, reference_file, output_dir, max_basecall_iterations, min_c
         log.info("Generating graphs...")
         graph_summary(freqs_file=filenames['freqs_file_path'], blast_file=filenames['blast_file'],
                       read_counter_file=filenames['read_counter_file'], stretches_file=filenames['stretches'],
-                      output_file=filenames['summary_graphs'], min_coverage=min_coverage,
-                      stretches_to_plot=stretches_to_plot)  # TODO: drop low quality mutations?
+                      output_file=filenames['summary_graphs'], min_coverage=min_coverage)  # TODO: drop low quality mutations?
         log.info(f"Most outputs are ready in {output_dir} !")
-        if calculate_haplotypes == "Y" or calculate_haplotypes == "y":
-            log.info(f"Calculating linked mutations...")
-            update_meta_data(output_dir=output_dir, status='Inferring haplotypes...', db_path=db_path)
-            infer_haplotypes(cpu_count=cpu_count, filenames=filenames,
-                             linked_mutations_dir=filenames['linked_mutations_dir'],
-                             log=log, max_read_size=max_read_size, output_dir=output_dir,
-                             stretches_pvalue=stretches_pvalue,
-                             basecall_dir=filenames['basecall_dir'], stretches_distance=stretches_distance)
-            graph_summary(freqs_file=filenames['freqs_file_path'], blast_file=filenames['blast_file'],
-                          read_counter_file=filenames['read_counter_file'], stretches_file=filenames['stretches'],
-                          output_file=filenames['summary_graphs'], min_coverage=min_coverage,
-                          stretches_to_plot=stretches_to_plot)  # TODO: drop low quality mutations?
-            graph_haplotypes(input_file=filenames['stretches'], number_of_stretches=stretches_to_plot,
-                             output_dir=output_dir)
         if cleanup == "Y":
             dirs_to_remove = [filenames['basecall_dir'], filenames['data_dir']]
             files_to_remove = [filenames['blast_file']]
@@ -431,14 +351,6 @@ def create_runner_parser():
     parser.add_argument("-mf", "--min_frequency", type=float,
                         help="positions with less than this frequency will be substituted by Ns in the consensus")
     parser.add_argument("-ar", "--align_to_ref", help="Y/N, generate consensus aligned to the original reference")
-    parser.add_argument("-sp", "--stretches_pvalue", type=float,
-                        help="only consider joint mutations with pvalue below this value")
-    parser.add_argument("-sd", "--stretches_distance", type=float,
-                        help="mean transitive distance between joint mutations to calculate stretches")
-    parser.add_argument("-stp", "--stretches_to_plot", type=int,
-                        help="number of stretches to plot in deep dive")
-    parser.add_argument("-smrs", "--stretches_max_read_size", type=int,
-                        help="look this many positions forward for joint mutations")
     parser.add_argument("-c", "--cleanup", help="Remove intermediary files when done in order to save space")
     parser.add_argument("-cc", "--cpu_count", help="max number of cpus to use (None means all)", type=int)
     parser.add_argument("-db", "--db_path", help='path to db directory')
@@ -462,7 +374,4 @@ if __name__ == "__main__":
            mode=args['blast_mode'], perc_identity=float(args['blast_perc_identity']), cpu_count=args['cpu_count'],
            min_coverage=int(args['min_coverage']), db_comment=args['db_comment'],
            soft_masking=args['blast_soft_masking'], min_frequency=float(args['min_frequency']),
-           stretches_pvalue=float(args['stretches_pvalue']), stretches_distance=float(args['stretches_distance']),
-           cleanup=args['cleanup'], align_to_ref=args['align_to_ref'], calculate_haplotypes=args['calculate_haplotypes'],
-           stretches_to_plot=int(args['stretches_to_plot']), max_read_size=int(args['stretches_max_read_size']),
-           db_path=args['db_path'])
+           cleanup=args['cleanup'], align_to_ref=args['align_to_ref'], db_path=args['db_path'])
