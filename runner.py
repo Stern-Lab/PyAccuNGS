@@ -304,7 +304,7 @@ def runner(input_dir, reference_file, output_dir, max_basecall_iterations, min_c
         create_stats_file(output_dir, filenames, alignments)
         log.info("Generating graphs...")
         graph_summary(freqs_file=filenames['freqs_file_path'], blast_file=filenames['blast_file'],
-                      read_counter_file=filenames['read_counter_file'], stretches_file=filenames['stretches'],
+                      read_counter_file=filenames['read_counter_file'],
                       output_file=filenames['summary_graphs'], min_coverage=min_coverage)  # TODO: drop low quality mutations?
         log.info(f"Most outputs are ready in {output_dir} !")
         if cleanup == "Y":
