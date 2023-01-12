@@ -67,34 +67,7 @@ def graph_mutation_freqs_by_position(mutation_data, ax):
     return ax
 
 
-def plot_stretches_summary(df, stretches, ax):
-    plt.figure(figsize=(20, 10))
-    for strech in stretches.index:
-        strech_df = df[df.Stretch == strech]
-        max_pos = max(strech_df.Pos2.max(), strech_df.Pos1.max())
-        min_pos = min(strech_df.Pos1.min(), strech_df.Pos2.min())
-        meandist = round(strech_df.iloc[0, 4], 3)
-        ax.plot((min_pos, max_pos), (meandist, meandist), label=f"Stretch #{strech}")
-    if not df.empty:
-        ax.legend() # TODO : add to log if df is empty and not preformed
-    ax.title.set_text("Haplotypes")
-    ax.set_xlabel('Position')
-    ax.set_ylabel('Mean Frequency')
-    return ax
-
-
-def graph_haplotype_overview(stretches_file, ax, stretches_to_plot):
-    if not os.path.isfile(stretches_file):
-        ax.text(0.5, 0.5, "Waiting for data...", fontsize=18, ha='center')
-        ax.title.set_text("Haplotypes")
-        return ax
-    df = pd.read_csv(stretches_file, sep="\t")
-    biggest_stretches = df.Stretch.value_counts()[:stretches_to_plot]
-    return plot_stretches_summary(df=df, stretches=biggest_stretches, ax=ax)
-
-
-def graph_summary(freqs_file, blast_file, read_counter_file, stretches_file, output_file, stretches_to_plot,
-                  min_coverage):
+def graph_summary(freqs_file, blast_file, read_counter_file, output_file, min_coverage):
     # TODO: graph multimapped ignored bases, min_coverage can be set as defult
     fig, axes = plt.subplots(figsize=(60, 20), ncols=3, nrows=2)
     plt.suptitle("Pipeline Statistics", fontsize=18)
@@ -108,7 +81,7 @@ def graph_summary(freqs_file, blast_file, read_counter_file, stretches_file, out
     if not mutation_data.empty:
         axes[1][0] = graph_mutation_freqs_by_mutation(mutation_data, axes[1][0])
         axes[1][1] = graph_mutation_freqs_by_position(mutation_data, axes[1][1])
-    axes[1][2] = graph_haplotype_overview(stretches_file, axes[1][2], stretches_to_plot=stretches_to_plot)
+    fig.delaxes(axes[1][2])
     fig.savefig(output_file, bbox_inches="tight", pad_inches=0.3)
 
 
