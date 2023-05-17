@@ -37,7 +37,7 @@ The pipeline allows control of some of BLAST's parameters in order to get a bett
 - <code>-bs / --blast_soft_masking</code> - BLAST's soft_masking parameter.
 
 #### Efficieny Parameters
-- <code>-c / --cleanup</code> - Remove redundant basecall directory when done.
+- <code>-c / --cleanup</code> -Y/N, remove redundant basecall directory when done.
 - <code>-cc / --cpu_count</code> - Max number of CPUs to use (0 means all).
 - <code>-mm / --max_memory</code> - Limit memory usage to this many megabytes (0 would use available memory in the begining of execution).
   
