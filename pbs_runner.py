@@ -154,5 +154,5 @@ if __name__ == "__main__":
                align_to_ref=args['align_to_ref'], queue=args['queue'], python_path=args['python_path'],
                cpu_count=args['cpu_count'], overlapping_reads=args['overlapping_reads'], db_path=args['db_path'],
                after_jobid=args['after_jobid'], job_suffix=args['job_suffix'], alias=args['alias'],
-               calculate_haplotypes=args['calculate_haplotypes'], pbs_cmd_path=args['pbs_cmd_path'], gmem=args['gmem'],
+               pbs_cmd_path=args['pbs_cmd_path'], gmem=args['gmem'],
                soft_masking=args['blast_soft_masking'], min_frequency=args['min_frequency'])
