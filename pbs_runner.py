@@ -13,25 +13,27 @@ from runner import create_runner_parser, assign_output_dir
 from utils import get_config
 
 
-def create_pbs_cmd_file(path, alias, output_logs_dir, cmd, queue, gmem=10, ncpus=50, nodes=1, custom_command=None,
-                        jnums=None, run_after_job_id=None, job_suffix=None, default_command=None):
+
+def create_pbs_cmd_file(path, alias, output_logs_dir, cmd, queue, gmem=10, ncpus=50, custom_command=None,
+                          jnums=None, run_after_job_id=None, job_suffix=None, default_command=None):
+    # although name says pbs, this function was recently modified to run on slurm cluster.
     with open(path, 'w') as o:
-        o.write("#!/bin/bash\n#PBS -S /bin/bash\n#PBS -j oe\n#PBS -r y\n")
-        o.write(f"#PBS -q {queue}\n")
-        o.write("#PBS -v PBS_O_SHELL=bash,PBS_ENVIRONMENT=PBS_BATCH \n")
-        o.write("#PBS -N " + alias + "\n")
-        o.write(f"#PBS -o {output_logs_dir} \n")
-        o.write(f"#PBS -e {output_logs_dir} \n")
-        o.write(f"#PBS -l select={nodes}:ncpus={ncpus}:mem={gmem}gb\n")
+        o.write("#!/bin/bash\n")
+        o.write(f"#SBATCH --job-name={alias}\n")
+        o.write(f"#SBATCH --partition={queue}\n")
+        o.write(f"#SBATCH --output={output_logs_dir}/%x-%j.out\n")
+        o.write(f"#SBATCH --error={output_logs_dir}/%x-%j.err\n")
+        o.write(f"#SBATCH --cpus-per-task={ncpus}\n")
+        o.write(f"#SBATCH --mem={gmem}gb\n")
         if jnums:
             if isinstance(jnums, int):
-                o.write(f"#PBS -J 1-{str(jnums)} \n\n")
+                o.write(f"#SBATCH --array=1-{jnums}\n")
             else:
-                o.write(f"#PBS -J {str(jnums[0])}-{str(jnums[1])} \n\n")
+                o.write(f"#SBATCH --array={jnums[0]}-{jnums[1]}\n")
         if run_after_job_id:
             if job_suffix:
                 run_after_job_id = str(run_after_job_id) + job_suffix
-            o.write("#PBS -W depend=afterok:" + str(run_after_job_id) + "\n")
+            o.write(f"#SBATCH --dependency=afterok:{run_after_job_id}\n")
         if default_command:
             o.write(default_command + "\n")
         if custom_command:
