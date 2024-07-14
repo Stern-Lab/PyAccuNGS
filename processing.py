@@ -131,6 +131,7 @@ def fix_insertions_index(df, ref_start):
 
 def parse_alignment_data(data, read_seq, ref_seq, read_start, ref_start, mode, minus_seq=False):
     if minus_seq and (mode == "SeqToRef"):
+        read_start = read_start.replace('start', 'end')
         ref_start = ref_start.replace('start', 'end')
         complimentary_base = {"A": "T", "T": "A", "C": "G", "G": "C", "-": "-", "N": "N"}
         seq = {'read': read_seq, 'ref': ref_seq}
@@ -140,11 +141,13 @@ def parse_alignment_data(data, read_seq, ref_seq, read_start, ref_start, mode, m
             seq[seq_type] = seq_data
     else:
         seq = {'read': list(data[read_seq]), 'ref': list(data[ref_seq])}
-    if minus_seq and not (mode == "SeqToRef"):
-        read_start = read_start.replace('start', 'end')
+
     df = pd.DataFrame(data={'read_seq': seq['read'],
                             'ref_seq': seq['ref']})
-    df['read_pos'] = (df.index + data[read_start]).astype(int)
+    if not minus_seq:
+        df['read_pos'] = (df.index + data[read_start]).astype(int)
+    else:
+        df['read_pos'] = (data[read_start] - df.index.values).astype(int)
     quality = data['quality'].copy()
     deletions = df[df.read_seq == "-"].read_pos
     if len(deletions) > 0:
@@ -154,6 +157,7 @@ def parse_alignment_data(data, read_seq, ref_seq, read_start, ref_start, mode, m
     df['quality'] = df.read_pos.map(lambda pos: quality[pos - 1])
     df = fix_insertions_index(df, data[ref_start])
     return df
+
 
 
 def get_alignment_df(alignment_data, mode):
