@@ -17,11 +17,18 @@ from Bio import SeqIO, Seq
 from Bio.SeqRecord import SeqRecord
 
 
-def get_files_by_extension(dir_path, extension):
+def get_files_by_extension(dir_path, extension, nested=False):
     files = []
-    for filename in os.listdir(dir_path):
-        if filename.endswith(f".{extension}"):
-            files.append(os.path.join(dir_path, filename))
+    if nested:
+        for root, dirs, filenames in os.walk(dir_path):
+            for filename in filenames:
+                if filename.endswith(f".{extension}"):
+                    files.append(os.path.join(root, filename))
+    else:
+        for filename in os.listdir(dir_path):
+            if filename.endswith(f".{extension}"):
+                files.append(os.path.join(dir_path, filename))
+    
     return files
 
 
