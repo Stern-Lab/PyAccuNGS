@@ -71,7 +71,7 @@ def get_alignments(blast_output, fastq_file, reads_overlap, mode):
     alignments, ignored_reads, multi_mapped_alignments, read_counter = filter_reads_by_alignment_count(alignments,
                                                                                                        reads_overlap)
     multi_mapped_alignments['suspicious_because'] = "multiple alignments"
-    suspicious_reads = suspicious_reads.append(multi_mapped_alignments)
+    suspicious_reads = suspicious_reads = pd.concat([suspicious_reads, multi_mapped_alignments], ignore_index=True)
     quality = get_quality(fastq_file, alignments)
     alignments['quality'] = alignments.read_id.map(lambda r: quality[r])
     return alignments, ignored_reads.reset_index(drop=True), suspicious_reads.reset_index(drop=True), read_counter
@@ -215,14 +215,14 @@ def filter_bases(called_bases, quality_threshold, reads_overlap):
         called_bases, mismatching_bases = filter_target_nunique_by(called_bases, by=['read_id', 'ref_pos'],
                                                                    target_column='read_base')
         mismatching_bases['dropped_because'] = "overlapping reads mismatch"
-        ignored_bases.append(mismatching_bases)
+        ignored_bases = pd.concat([ignored_bases, mismatching_bases], ignore_index=True)
         called_bases, no_plus_minus_bases = filter_target_nunique_by(called_bases, by=['read_id', 'ref_pos'],
                                                                      target_column='plus_or_minus',
                                                                      required_value=2)
         called_bases['overlap'] = 1
         if reads_overlap == "Y":
             no_plus_minus_bases['dropped_because'] = "did not align with both plus and minus"
-            ignored_bases.append(no_plus_minus_bases)
+            ignored_bases = pd.concat([ignored_bases, no_plus_minus_bases], ignore_index=True)
         elif reads_overlap == "P":
             no_plus_minus_bases['overlap'] = 0
             called_bases = pd.concat([called_bases, no_plus_minus_bases])
