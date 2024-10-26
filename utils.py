@@ -130,7 +130,7 @@ def create_consensus_file(freqs_file, min_coverage, output_file, align_to_ref, m
         # filtering on rank==0 removed positions with 0 coverage (coz they have rank 4) so we bring them back
         missing_positions = [{'ref_pos': x, 'read_base': 'N'}
                              for x in range(1, max_pos + 1) if x not in df['ref_pos'].unique()]
-        df = df.append(missing_positions).sort_values('ref_pos')
+        df = pd.concat([df, pd.DataFrame([missing_positions])], ignore_index=True)
     consensus = df[df['read_base'] != '-']['read_base']        # drop deletions from consensus
     record = SeqRecord(
         Seq.Seq(consensus.str.cat()),
