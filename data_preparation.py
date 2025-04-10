@@ -82,7 +82,7 @@ def split_fastq_file(fastq_file, output_dir, cpu_count, max_memory):
     if not max_memory:
         max_memory = 0.9 * psutil.virtual_memory().available / 1000000  # 90% of currently available RAM.
     approx_memory_usage = part_size * cpu_count / 4  # rough estimate derived from testing
-    while approx_memory_usage > max_memory:
+    while approx_memory_usage > int(max_memory):
         part_size /= 2
         approx_memory_usage = part_size * cpu_count / 4
     record_iter = SeqIO.parse(open(fastq_file), "fastq")
