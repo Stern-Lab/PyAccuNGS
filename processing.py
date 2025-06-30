@@ -71,7 +71,7 @@ def get_alignments(blast_output, fastq_file, reads_overlap, mode):
     alignments, ignored_reads, multi_mapped_alignments, read_counter = filter_reads_by_alignment_count(alignments,
                                                                                                        reads_overlap)
     multi_mapped_alignments['suspicious_because'] = "multiple alignments"
-    suspicious_reads = suspicious_reads.append(multi_mapped_alignments)
+    suspicious_reads = pd.concat([suspicious_reads, multi_mapped_alignments], ignore_index=True)
     quality = get_quality(fastq_file, alignments)
     alignments['quality'] = alignments.read_id.map(lambda r: quality[r])
     return alignments, ignored_reads.reset_index(drop=True), suspicious_reads.reset_index(drop=True), read_counter

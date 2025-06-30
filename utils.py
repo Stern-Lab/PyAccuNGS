@@ -111,24 +111,40 @@ def md5_dir(directory: Union[str, Path]) -> str:
 
 def create_consensus_file(freqs_file, min_coverage, output_file, align_to_ref, min_frequency):
     """Create consensus file from freqs file"""
+
     df = pd.read_table(freqs_file)
+
     max_pos = round(df['ref_pos'].max())
+
     df = df[df["base_rank"] == 0]
     df.loc[df["coverage"] <= min_coverage, 'read_base'] = 'N'
     df.loc[df["frequency"] <= min_frequency, 'read_base'] = 'N'
     df = df[(df["ref_pos"] == np.round(df['ref_pos'])) | (df['frequency'] > min_frequency)]  # drop low freq insertions
+
     if align_to_ref:
         df = df[df["ref_pos"] == np.round(df['ref_pos'])]      # drop insertions
         df["read_base"] = df["read_base"].replace('-', 'N')    # turn deletions into N's
+
         # filtering on rank==0 removed positions with 0 coverage (coz they have rank 4) so we bring them back
-        missing_positions = [{'ref_pos': x, 'read_base': 'N'}
-                             for x in range(1, max_pos + 1) if x not in df['ref_pos'].unique()]
-        df = df.append(missing_positions).sort_values('ref_pos')
+        missing_positions = [
+            {'ref_pos': x, 'read_base': 'N'}
+            for x in range(1, max_pos + 1)
+            if x not in df['ref_pos'].unique()
+        ]
+
+        if missing_positions:
+            missing_df = pd.DataFrame(missing_positions)
+            df = pd.concat([df, missing_df], ignore_index=True)
+
+        df = df.sort_values('ref_pos')
+
     consensus = df[df['read_base'] != '-']['read_base']        # drop deletions from consensus
+
     record = SeqRecord(
-        Seq.Seq(consensus.str.cat()),
+        Seq.Seq(consensus.str.cat(sep="")),
         id="AccuNGS consensus",
-        description=f"Generated on {time.asctime()}",)
+        description=f"Generated on {time.asctime()}",
+    )
     with open(output_file, "w") as output_handle:
         SeqIO.write(record, output_handle, "fasta")
 
